@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meta-llama-3-1
+spec:
+  template:
+    spec:
+      containers:
+      - name: main
+        image: vllm/vllm-openai:v0.5.5
+        imagePullPolicy: Always
+        command:
+        - python3
+        - -m
+        - vllm.entrypoints.api_server
+        - --model
+        - /mnt/model
+        - --gpu_memory_utilization
+        - "0.30"
+        - --max_model_len
+        - "8192"
+        - --tensor-parallel-size
+        - "2"
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 360
+          periodSeconds: 15
+        resources:
+          limits:
+            nvidia.com/gpu: '4'
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "1,2"
+        volumeMounts:
+        - name: volume
+          mountPath: /mnt/model
+        - name: dshm
+          mountPath: /dev/shm
+      volumes:
+      - name: volume
+        persistentVolumeClaim:
+          claimName: meta-llama-3-1-pvc
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 50Gi

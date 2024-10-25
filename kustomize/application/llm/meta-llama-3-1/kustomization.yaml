@@ -1,0 +1,5 @@
+resources:
+- deployment.yaml
+- service.yaml
+commonLabels:
+  sommai.wangchan.ai/name: meta-llama-3-1

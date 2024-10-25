@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webgateway
+spec:
+  template:
+    spec:
+      containers:
+      - name: main
+        image: acpvisai/backend-sommai-legal-assistant:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        envFrom:
+        - configMapRef:
+            name: webgateway-conf

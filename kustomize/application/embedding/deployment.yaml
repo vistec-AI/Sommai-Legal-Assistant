@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embedding
+spec:
+  template:
+    spec:
+      containers:
+      - name: main
+        image: ghcr.io/huggingface/text-embeddings-inference:1.5
+        ports:
+        - containerPort: 80
+          name: http
+        args:
+        - --model-id=/mnt/embedding
+        - --tokenization-workers=4
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          httpGet:
+            path: /health
+            port: http
+        resources:
+          limits:
+            nvidia.com/gpu: '1'
+        volumeMounts:
+        - name: dshm
+          mountPath: /dev/shm
+        - name: volume
+          mountPath: /mnt/embedding
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+      - name: volume
+        persistentVolumeClaim:
+          claimName: embedding-pvc

@@ -1,4 +1,4 @@
-FROM visairegistry.azurecr.io/onnxruntime-cuda:12
+FROM acpvisai/onnxruntime-cuda:12
 
 WORKDIR /app
 COPY requirements.txt .

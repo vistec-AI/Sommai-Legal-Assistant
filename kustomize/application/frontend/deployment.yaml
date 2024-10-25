@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  template:
+    spec:
+      containers:
+      - name: main
+        image: acpvisai/frontend-sommai-legal-assistant:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000

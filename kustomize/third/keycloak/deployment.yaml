@@ -13,5 +13,5 @@ spec:
           - name: http
             containerPort: 8080
           envFrom:
-          - configMapRef:
-              name: keycloak-conf
+          - secretRef:
+              name: keycloak-secret

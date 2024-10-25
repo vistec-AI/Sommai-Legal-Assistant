@@ -16,8 +16,8 @@ spec:
           mountPath: /var/lib/postgresql/data
           subPath: data
         envFrom:
-        - configMapRef:
-            name: postgres-conf
+        - secretRef:
+            name: postgres-secret
       volumes:
       - name: volume
         persistentVolumeClaim:

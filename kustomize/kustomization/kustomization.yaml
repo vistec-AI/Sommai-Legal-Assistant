@@ -1,0 +1,24 @@
+resources:
+- namespace.yaml
+- ../third/postgress
+- ../third/rabbitmq
+- ../third/keycloak
+- ../applications/frontend
+- ../applications/webgateway
+- ../applications/rag
+- ../applications/embedding
+- ../applications/llm/meta-llama-3
+- ../applications/llm/meta-llama-3-1
+- ../applications/llm/scb-typhoon-1-5
+- ../applications/llm/sea-lion-2-1
+secretGenerator:
+- envs:
+  - rag.env
+  name: rag-secret
+- envs:
+  - keycloak.env
+  name: keycloak-secret
+- envs:
+  - postgres.env
+  name: postgres-secret
+namespace: sommai

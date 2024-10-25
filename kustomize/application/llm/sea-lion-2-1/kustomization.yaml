@@ -1,0 +1,5 @@
+resources:
+- deployment.yaml
+- service.yaml
+commonLabels:
+  sommai.wangchan.ai/name: sea-lion-2-1

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag
+spec:
+  template:
+    spec:
+      containers:
+      - name: main
+        image: acpvisai/rag-sommai-legal-assistant:latest
+        ports:
+        - containerPort: 9000
+          name: http
+          protocol: TCP
+        envFrom:
+        - secretRef:
+            name: rag-secret
+        imagePullPolicy: Always
+        resources:
+          limits:
+            nvidia.com/gpu: '1'
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          httpGet:
+            path: /healthz
+            port: http
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
