@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import chat_rooms, ping, chats, inference_models, arena, arena_model_responses, authentication, rating
+from app.api.v1.endpoints import chat_rooms, ping, chats, inference_models, arena, arena_model_responses, authentication, rating, usage
 
 api_router = APIRouter()
 api_router.include_router(ping.router, tags=["ping"])
@@ -13,3 +13,4 @@ api_router.include_router(arena_model_responses.router, prefix="/arena-model-res
 api_router.include_router(authentication.router, prefix="/auth", tags=["auth"])
 api_router.include_router(authentication.auth_router, prefix="/auth", tags=["auth"])
 api_router.include_router(rating.router, prefix="/rating", tags=["rating"])
+api_router.include_router(usage.router, prefix="/usage", tags=["usage"])
