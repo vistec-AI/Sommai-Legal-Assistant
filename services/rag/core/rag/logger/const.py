@@ -1,0 +1,1 @@
+chatlog_savepath = "./chatlog"

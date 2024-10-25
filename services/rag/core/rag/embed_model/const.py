@@ -1,0 +1,1 @@
+CUSTOM_EMBED_MODEL_NAME = ["embedding"]

@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  template:
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: volume
+          mountPath: /var/lib/postgresql/data
+          subPath: data
+        envFrom:
+        - configMapRef:
+            name: postgres-conf
+      volumes:
+      - name: volume
+        persistentVolumeClaim:
+          claimName: postgres-pvc

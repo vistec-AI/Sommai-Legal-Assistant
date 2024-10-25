@@ -1,0 +1,9 @@
+User-Agent: *
+Allow: /
+Disallow: /auth/secret/
+
+# Host
+Host: https://sommai.wangchan.ai
+
+# Sitemaps
+Sitemap: https://sommai.wangchan.ai/sitemap.xml

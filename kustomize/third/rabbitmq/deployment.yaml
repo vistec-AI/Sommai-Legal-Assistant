@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3.13.1-management
+        ports:
+        - containerPort: 5672
+          name: amqp
+        - containerPort: 15672
+          name: management
+        env:
+        - name: RABBITMQ_NODENAME
+          value: rabbitmq@localhost
+        volumeMounts:
+        - name: mnesia
+          mountPath: /var/lib/rabbitmq/mnesia
+  volumeClaimTemplates:
+  - metadata:
+      name: mnesia
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
