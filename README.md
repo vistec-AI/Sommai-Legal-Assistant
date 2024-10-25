@@ -27,7 +27,7 @@ This project is organized into various applications and services that are deploy
 
 The kustomization structure is organized as follows:
 
-![infrastructure](infrastructure.png)
+![infrastructure](assets/infrastructure.png)
 
 ```
 .
