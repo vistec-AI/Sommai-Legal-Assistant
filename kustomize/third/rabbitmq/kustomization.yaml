@@ -1,5 +1,5 @@
 resources:
-- deployment.yaml
+- statefulset.yaml
 - service.yaml
 commonLabels:
   sommai.wangchan.ai/name: rabbitmq

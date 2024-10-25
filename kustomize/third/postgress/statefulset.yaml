@@ -3,6 +3,7 @@ kind: StatefulSet
 metadata:
   name: postgres
 spec:
+  serviceName: default
   template:
     spec:
       containers:
@@ -12,13 +13,17 @@ spec:
         ports:
         - containerPort: 5432
         volumeMounts:
-        - name: volume
+        - name: data
           mountPath: /var/lib/postgresql/data
           subPath: data
         envFrom:
         - secretRef:
             name: postgres-secret
-      volumes:
-      - name: volume
-        persistentVolumeClaim:
-          claimName: postgres-pvc
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi

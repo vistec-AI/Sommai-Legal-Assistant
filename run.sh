@@ -1,0 +1,1 @@
+kustomize build kustomize/kustomization | kubectl apply -f -
