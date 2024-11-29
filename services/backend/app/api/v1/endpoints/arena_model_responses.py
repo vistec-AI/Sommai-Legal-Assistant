@@ -32,10 +32,17 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.utils_func.streaming import fetch_answer_stream, filter_other_lang, escape_inner_quotes
 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
 router = APIRouter(route_class=AuthenticatedRoute)
 
 MESSAGE_STREAM_DELAY = 0.001 # 1 milliseconds
 MESSAGE_STREAM_RETRY_TIMEOUT = 3000  # milliseconds
+
+limiter = Limiter(key_func=get_remote_address)
+
+arena_model_response_not_found = "Arena model response not found"
 
 @router.get("/", response_model=List[schemas.ArenaModelResponse])
 def read_arena_model_responses(
@@ -70,7 +77,7 @@ def read_arena_model_response(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={
                 "code": "not_found",
-                "description": "Arena model response not found"
+                "description": arena_model_response_not_found
             }
         )
     return arena_model_response
@@ -92,7 +99,7 @@ def arena_exists(db: Session, arena_id: UUID4) -> bool:
 def inference_model_exists(db: Session, inference_model_id: UUID4) -> bool:
     return db.query(InferenceModel).filter(InferenceModel.id == inference_model_id).first() is not None
 
-async def get_law_references(base_url: str, llm_name: str, question: str) -> Any:
+async def get_law_references(base_url: str, question: str) -> Any:
     law_references = None
     retrieval_url = urljoin(base_url, "retrieval")
     retrieval_payload = {
@@ -101,7 +108,7 @@ async def get_law_references(base_url: str, llm_name: str, question: str) -> Any
         "top_n": 5,
         "reranker": True
     }
-    
+
     headers = {"Content-Type": "application/json"}
     try:
         async with httpx.AsyncClient(timeout=120) as client:
@@ -137,6 +144,7 @@ async def get_law_references(base_url: str, llm_name: str, question: str) -> Any
 
 # create a arena model response then ask question to the model and update answer to the arena model response by id
 @router.post("/question", response_model=schemas.ArenaModelResponse)
+@limiter.limit("30/second")
 async def create_arena_model_response(
     *,
     db: Session = Depends(deps.get_db),
@@ -194,7 +202,7 @@ async def create_arena_model_response(
     headers = {"Content-Type": "application/json"}
 
     def save_failed_arena_model_response():
-        updated_arena_model_response =  save_arena_model_response_history(db=db, arena_model_response_id=new_arena_model_response.id, complete_answer=None, status=ModelResponseStatus.FAILED, law_references=None)
+        updated_arena_model_response =  save_arena_model_response_history(db=db, arena_model_response_id=new_arena_model_response.id, complete_answer="", status=ModelResponseStatus.FAILED, law_references=None)
         if updated_arena_model_response is None:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -207,17 +215,17 @@ async def create_arena_model_response(
     try:
         async def stream_model_data():
             async with httpx.AsyncClient(timeout=120) as client:
-                buffer = ""
+                text_buffer = ""
                 try:
                     async with client.stream("POST", url, json=payload, headers=headers) as response:
                         async for chunk in response.aiter_bytes():
                             if chunk:
                                 chunk_data = chunk.decode("utf-8")
-                                buffer += chunk_data
+                                text_buffer += chunk_data
                                 try:
-                                    escaped_text = escape_inner_quotes(buffer)
+                                    escaped_text = escape_inner_quotes(text_buffer)
                                     chunk_json_obj = json.loads(escaped_text, strict=False)
-                                    buffer = ""
+                                    text_buffer = ""
                                     if "text" in chunk_json_obj:
                                         yield chunk_json_obj["text"]
                                     else:
@@ -302,7 +310,7 @@ async def create_arena_model_response(
     loop = asyncio.get_event_loop()
     collected_answer = []
     law_references = None
-    model_status = ModelResponseStatus.DONE
+
     try:
         async for chunk in stream_model_data():
             filtered_chunk = filter_other_lang(chunk)
@@ -311,7 +319,7 @@ async def create_arena_model_response(
 
         complete_answer = ''.join(collected_answer)
         if "สมหมายไม่สามารถตอบคำถามนี้" not in complete_answer:
-            law_references_response = await get_law_references(base_url=base_url, llm_name=inference_model.llm_name, question=arena_model_response_in.question)
+            law_references_response = await get_law_references(base_url=base_url, question=arena_model_response_in.question)
             if law_references_response is not None:
                 law_references = law_references_response
         updated_arena_model_response =  save_arena_model_response_history(db=db, arena_model_response_id=new_arena_model_response.id, complete_answer=complete_answer, status=ModelResponseStatus.DONE, law_references=law_references)
@@ -325,6 +333,8 @@ async def create_arena_model_response(
             )
         return updated_arena_model_response
 
+    except asyncio.exceptions.CancelledError:
+        print(f"Asyncio cancelled error")
     except HTTPException as exc:
         raise exc
     except Exception as exc:
@@ -336,18 +346,6 @@ async def create_arena_model_response(
                 "description": f"An unexpected error occurred while streaming: {exc}"
             }
         )
-
-# mock streaming
-async def mock_paragraph():
-    # Example paragraph to send as stream events
-    paragraph = "Green tea comes from unoxidized leaves of the Camellia sinensis bush. It is one of the least processed types of tea, containing the most antioxidants and beneficial polyphenols. Some research suggests green tea may positively affect weight loss, liver disorders, type 2 diabetes, Alzheimer’s disease, and more. However, more evidence is necessary for researchers to definitively prove these health benefits. This article lists some potential health benefits and types of green tea, its nutrition content, and the potential side effects."
-
-    # Split the paragraph into words
-    words = paragraph.split()
-    collected_answer = []
-    for word in words:
-        yield word + " "
-        await asyncio.sleep(MESSAGE_STREAM_DELAY)
 
 @router.put("/{id}", response_model=schemas.ArenaModelResponse)
 def update_arena_model_response(
@@ -362,7 +360,7 @@ def update_arena_model_response(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={
                 "code": "not_found",
-                "description": "Arena model response not found"
+                "description": arena_model_response_not_found
             }
         )
     arena_model_response = crud.arena_model_response.update(db=db, db_obj=arena_model_response, obj_in=arena_model_response_in)
@@ -380,7 +378,7 @@ def delete_arena_model_response(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={
                 "code": "not_found",
-                "description": "Arena model response not found"
+                "description": arena_model_response_not_found
             }
         )
     arena_model_response = crud.arena_model_response.remove(db=db, id=id)

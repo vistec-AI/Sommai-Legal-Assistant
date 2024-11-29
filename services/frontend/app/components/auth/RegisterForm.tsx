@@ -5,7 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserFormProps, ResponseError } from "@/app/types";
-import { validateEmail } from "@/app/utils/validator";
+import { validateEmail, sanitizedInput } from "@/app/utils/validator";
 
 import {
   HTTP_401_UNAUTHORIZED,
@@ -60,17 +60,17 @@ const RegisterForm = () => {
     setServiceErrorMessage("");
     const customEmail = email?.trim();
     const isValidEmail = validateEmail(customEmail);
-
+    const sanitizedEmail = sanitizedInput(customEmail);
     if (!isValidEmail) {
       setEmailError(true);
       return;
     }
     try {
       setLoadingState(true);
-      await api.auth.register({ email: customEmail, password });
 
-      router.push("/auth/registered");
-      setLoadingState(false);
+      await api.auth.register({ email: sanitizedEmail, password });
+      router.push(`/auth/verify-email?email=${sanitizedEmail}`);
+      // setLoadingState(false);
     } catch (error) {
       if (error instanceof ResponseError) {
         if (error.response.status === HTTP_401_UNAUTHORIZED) {
@@ -79,6 +79,11 @@ const RegisterForm = () => {
             HTTP_RESPONSE_CODE[HTTP_401_UNAUTHORIZED].EMAIL_ALREADY_EXISTS
           ) {
             setErrorMessage("อีเมลถูกใช้งานแล้ว");
+          } else if (
+            error.response.code ===
+            HTTP_RESPONSE_CODE[HTTP_401_UNAUTHORIZED].EMAIL_NOT_VERIFIED
+          ) {
+            router.push(`/auth/verify-email?email=${sanitizedEmail}`);
           }
         } else {
           setServiceErrorMessage(`ขณะนี้ระบบมีปัญหา โปรดลองอีกครั้งในภายหลัง`);

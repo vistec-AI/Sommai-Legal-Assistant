@@ -13,5 +13,4 @@ url = URL.create(
     database=settings.DB_NAME,
 )
 engine = create_engine(url, pool_pre_ping=True)
-# SessionLocal = Session(engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

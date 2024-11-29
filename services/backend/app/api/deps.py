@@ -12,7 +12,7 @@ from app import crud, models, schemas
 from app.core.config import settings
 from app.db.session import engine
 
-
+token_expired_description = "Token has expired."
 
 def get_db() -> Generator:
     try:
@@ -54,7 +54,6 @@ keycloak_openid = KeycloakOpenID(
     client_id=settings.KEYCLOAK_CLIENT_ID,
     realm_name=settings.KEYCLOAK_REALM,
     client_secret_key=settings.KEYCLOAK_CLIENT_SECRET,
-    # verify=True
 )
 
 def get_user_by_token(
@@ -62,14 +61,13 @@ def get_user_by_token(
     token: str = Depends(oauth2_scheme)
 ) -> models.User:
     try:
-        # user_info_user = keycloak_openid.userinfo(token)
         user_info = keycloak_openid.introspect(token)
         if not user_info["active"]:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={
                     "code": "token_expired",
-                    "description": "Token has expired."
+                    "description": token_expired_description
                 }
             )
 
@@ -89,7 +87,7 @@ def get_user_by_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "code": "token_expired",
-                "description": "Token has expired."
+                "description": f"{token_expired_description}: {str(e)}"
             }
         )
     except KeycloakAuthenticationError as e:
@@ -97,7 +95,7 @@ def get_user_by_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "code": "token_expired",
-                "description": "Token has expired."
+                "description": f"{token_expired_description}: {str(e)}"
             }
         )
     except KeycloakConnectionError:
@@ -108,20 +106,20 @@ def get_user_by_token(
                 "description": "Unable to connect to Keycloak server"
             }
         )
-    except jwt.ExpiredSignatureError:
+    except jwt.ExpiredSignatureError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "code": "token_expired",
-                "description": "Token has expired."
+                "description": f"{token_expired_description}: {str(e)}"
             }
         )
-    except KeycloakError as ke:
+    except KeycloakError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "code": "keycloak_authentication_error",
-                "description": "Authentication service error"
+                "description": f"Authentication service error: {str(e)}"
             }
         )
     except HTTPException as http_exc:

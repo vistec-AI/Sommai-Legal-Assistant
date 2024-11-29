@@ -11,10 +11,9 @@ import React, {
 import Image from "next/image";
 
 import { fetchEventSource } from "@microsoft/fetch-event-source";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import clsx from "clsx";
 import sanitizeHtml from "sanitize-html";
+import { sanitizedInput } from "@/app/utils/validator";
 import { v4 as uuidv4 } from "uuid";
 import EventSource from "eventsource";
 import JSON5 from "json5";
@@ -25,6 +24,7 @@ import api from "@/api";
 import { useNotification } from "@/app/context/NotificationContext";
 import { useChatbot } from "@/app/context/ChatbotContext";
 import LoadingThreeDots from "../auth/LoadingThreeDots";
+import ParseHTML from "../common/ParseHTML";
 
 import {
   LawReferenceType,
@@ -41,7 +41,10 @@ import {
   getRefreshToken,
   setUserTokens,
 } from "@/app/utils/auth";
-import { HTTP_200_OK } from "@/app/constants/httpResponse";
+import {
+  HTTP_200_OK,
+  HTTP_429_TOO_MANY_REQUESTS,
+} from "@/app/constants/httpResponse";
 
 import LawReferenceSection from "../LawReferenceSection";
 import Popover from "../common/Popover";
@@ -66,6 +69,7 @@ type ChatbotSectionProps = {
   chats: ChatType[];
   updateChatByChatRoomID?: (chatRoomID: string, newChats: ChatType[]) => void;
   className?: string;
+  isSelectedChatbot: boolean;
 };
 
 const CHAT_STATUS = {
@@ -75,6 +79,7 @@ const CHAT_STATUS = {
   DONE: "DONE",
   TYPING: "TYPING",
   DONE_STREAMING: "DONE_STREAMING",
+  TIMEOUT: "TIMEOUT",
 };
 
 const Z_INDEX_STOP_BUTTON = 100;
@@ -89,6 +94,7 @@ const ChatbotSection = ({
   chats = [],
   updateChatByChatRoomID,
   className,
+  isSelectedChatbot,
 }: ChatbotSectionProps) => {
   const sanitizeConfig = {
     allowedTags: ["b", "i", "a", "p"],
@@ -177,8 +183,10 @@ const ChatbotSection = ({
     });
   };
 
-  const handleAskQuestion = async (question: string) => {
+  const handleAskQuestion = async (inputQuestion: string) => {
     resetChatID();
+
+    const question: string = sanitizedInput(inputQuestion);
 
     if (selectedInferenceModel) {
       const customID = uuidv4();
@@ -194,6 +202,21 @@ const ChatbotSection = ({
             tempPrevState[chatIndex] = {
               ...prevState[chatIndex],
               status: CHAT_STATUS.FAILED,
+              loadingState: false,
+            };
+            return tempPrevState;
+          }
+          return prevState;
+        });
+      };
+      const setTimeoutChat = () => {
+        setChatHistories((prevState) => {
+          const tempPrevState = [...prevState];
+          const chatIndex = prevState.findIndex((p) => p.customID === customID);
+          if (chatIndex !== -1) {
+            tempPrevState[chatIndex] = {
+              ...prevState[chatIndex],
+              status: CHAT_STATUS.TIMEOUT,
               loadingState: false,
             };
             return tempPrevState;
@@ -289,11 +312,13 @@ const ChatbotSection = ({
             }
             if (response.ok) {
               return;
-            } else if (
-              response.status >= 400 &&
-              response.status < 500 &&
-              response.status !== 429
-            ) {
+            } else if (response.status === HTTP_429_TOO_MANY_REQUESTS) {
+              console.error("Timeout", response.status);
+              setTimeoutChat();
+              resetChatID();
+              stopResponseSSE();
+              return;
+            } else if (response.status >= 400 && response.status < 500) {
               console.error("Client error, not retrying", response.status);
               setFailedEmptyChat();
               resetChatID();
@@ -485,6 +510,7 @@ const ChatbotSection = ({
           chatHistories={chatHistories}
           handleAskQuestion={handleAskQuestion}
           newCustomChatID={newCustomChatIDRef.current}
+          isSelectedChatbot={isSelectedChatbot}
         />
         {/* question typing */}
         <UserQuestionInputSection
@@ -506,6 +532,7 @@ type ChatHistorySectionProps = {
   chatRoomID: string;
   handleAskQuestion: (question: string) => void;
   newCustomChatID: string;
+  isSelectedChatbot: boolean;
 };
 
 type DefaultLawQuestion = {
@@ -519,6 +546,7 @@ const ChatHistorySection = ({
   chatRoomID,
   handleAskQuestion,
   newCustomChatID,
+  isSelectedChatbot,
 }: ChatHistorySectionProps) => {
   const DEFAULT_LAW_QUESTIONS: DefaultLawQuestion[] = [
     {
@@ -583,17 +611,16 @@ const ChatHistorySection = ({
   // Listen to manual scroll
   useEffect(() => {
     const ref = containerRef.current;
-    if (ref) {
+    if (ref && isSelectedChatbot) {
       ref.addEventListener("scroll", handleScroll);
     }
-
     // Cleanup event listener on unmount
     return () => {
       if (ref) {
         ref.removeEventListener("scroll", handleScroll);
       }
     };
-  }, []);
+  }, [containerRef?.current, isSelectedChatbot]);
 
   useEffect(() => {
     const delayScroll = async () => {
@@ -718,12 +745,10 @@ const ConversationSection = memo(
       try {
         await api.chats.likeChat(id);
 
-        if (!rating) {
-          handleAddNotification({
-            status: "success",
-            content: `ขอบคุณสำหรับความคิดเห็น เราจะพัฒนาให้ดียิ่งขึ้น`,
-          });
-        }
+        handleAddNotification({
+          status: "success",
+          content: `ขอบคุณสำหรับความคิดเห็น เราจะพัฒนาให้ดียิ่งขึ้น`,
+        });
       } catch (error) {
         if (error instanceof ResponseError) {
           handleAddNotification({
@@ -740,12 +765,10 @@ const ConversationSection = memo(
       try {
         await api.chats.dislikeChat(id, feedback);
 
-        if (!rating) {
-          handleAddNotification({
-            status: "success",
-            content: `ขอบคุณสำหรับความคิดเห็น เราจะพัฒนาให้ดียิ่งขึ้น`,
-          });
-        }
+        handleAddNotification({
+          status: "success",
+          content: `ขอบคุณสำหรับความคิดเห็น เราจะพัฒนาให้ดียิ่งขึ้น`,
+        });
       } catch (error) {
         if (error instanceof ResponseError) {
           handleAddNotification({
@@ -868,7 +891,7 @@ const ConversationSection = memo(
               <span className="text-gray-700 font-semibold text-sm">คุณ</span>
             </div>
             {/* question */}
-            <div className="text-primary-700 md:max-w-[90%] break-words overflow-hidden text-md py-2 px-4 rounded-b-xl rounded-tl-xl border border-primary-300 bg-primary-50">
+            <div className="text-primary-700 whitespace-pre-line md:max-w-[90%] break-words overflow-hidden text-md py-2 px-4 rounded-b-xl rounded-tl-xl border border-primary-300 bg-primary-50">
               {question}
             </div>
           </div>
@@ -905,8 +928,12 @@ const ConversationSection = memo(
                     <p className="whitespace-pre-line text-gray-400 pr-2">
                       No result.
                     </p>
+                  ) : chat.status === CHAT_STATUS.TIMEOUT ? (
+                    <p className="whitespace-pre-line text-gray-400 pr-2">
+                      ขออภัย ขณะมีผู้ใช้งานจำนวนมาก กรุณากลับมาอีกครั้งใน 1 นาที
+                    </p>
                   ) : chat.status === CHAT_STATUS.FAILED ? (
-                    <p className="whitespace-pre-line text-error-300 pr-2">
+                    <p className="whitespace-pre-line text-error-400 pr-2">
                       Failed
                     </p>
                   ) : chat.status === CHAT_STATUS.PROCESSING &&
@@ -915,12 +942,7 @@ const ConversationSection = memo(
                       Queuing up...
                     </p>
                   ) : (
-                    <Markdown
-                      remarkPlugins={[remarkGfm]}
-                      className="whitespace-pre-line text-gray-600 break-words answer-section"
-                    >
-                      {answer}
-                    </Markdown>
+                    <ParseHTML markdown={answer || ""} />
                   )}
 
                   {answer &&
@@ -1194,7 +1216,7 @@ const UserQuestionInputSection = memo(
               </div>
             )}
             {/* question input */}
-            <div className="relative flex h-fit grow ml-[-1px] text-gray-900 rounded-r-lg overflow-hidden">
+            <div className="relative flex h-fit grow ml-[-1px] text-gray-900 rounded-tr-lg rounded-br-lg overflow-hidden">
               <textarea
                 ref={questionInputRef}
                 value={text}
@@ -1202,14 +1224,15 @@ const UserQuestionInputSection = memo(
                 onKeyDown={handleKeyDown}
                 rows={1}
                 placeholder="พิมพ์ข้อความที่นี่..."
-                className="box-border flex text-md min-h-11 text-gray-900 border border-gray-300 shadow-xs outline-none rounded-r-lg w-full py-2.5 pl-3.5 pr-12"
+                className="box-border flex text-md min-h-11 text-gray-900 border border-gray-300 shadow-xs outline-none rounded-tr-lg rounded-br-lg w-full py-2.5 pl-3.5 pr-12"
                 style={{ height: "44px" }}
+                autoFocus
               />
               <button
                 disabled={!text || showStopChat}
                 type="button"
                 aria-label="ส่งคำถาม"
-                className="absolute h-full w-11 shrink-0 rounded-r-lg right-0 top-0 btn-primary flex items-center justify-center"
+                className="absolute h-full w-11 shrink-0 rounded-tr-lg rounded-br-lg right-0 top-0 btn-primary flex items-center justify-center"
                 onClick={sendText}
               >
                 <SendIcon className="w-5 h-5" />
@@ -1299,7 +1322,7 @@ const DislikeResponseModal = ({
   };
 
   const getFeedbackResponse = () => {
-    const responseText: string = responseInput?.trim();
+    const responseText: string = sanitizedInput(responseInput?.trim());
     let feedbackResponse: string = responseText;
     if (selectedDislikeOptions.length > 0) {
       const responseOption: string = selectedDislikeOptions.join(", ");

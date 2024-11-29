@@ -23,8 +23,8 @@ export type TokenType = {
   refresh_token: string;
 }
 
-
-const tokenOption = { expires: EXPIRES_DAY, path: "/" };
+export const SECURE_OPTION = process.env.NODE_ENV === "production" ? { secure: true } : {}
+const tokenOption = { expires: EXPIRES_DAY, path: "/", ...SECURE_OPTION };
 
 export const isBrowser = () => typeof window !== "undefined";
 

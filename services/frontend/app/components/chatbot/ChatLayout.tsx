@@ -183,6 +183,7 @@ const ChatLayout = ({
                           className={clsx(
                             chatRoom.id === currentChatRoom.id ? "" : "hidden"
                           )}
+                          isSelectedChatbot={chatRoom.id === currentChatRoom.id}
                         />
                       );
                     })}

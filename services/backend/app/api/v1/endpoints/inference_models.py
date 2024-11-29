@@ -7,7 +7,6 @@ from app import crud, models, schemas
 from app.api import deps
 from sqlalchemy.orm import Session
 
-
 router = APIRouter()
 
 @router.get("/", response_model=List[schemas.InferenceModel])

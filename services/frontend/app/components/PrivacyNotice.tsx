@@ -1,6 +1,6 @@
 const PrivacyNotice = () => {
   return (
-    <section className="flex flex-col gap-3 nested-list">
+    <section className="flex flex-col gap-3 custom-nested-list sm:text-base text-sm">
       <h5 className="font-semibold text-center">
         คำประกาศเกี่ยวกับความเป็นส่วนตัว (Privacy Notice)
       </h5>

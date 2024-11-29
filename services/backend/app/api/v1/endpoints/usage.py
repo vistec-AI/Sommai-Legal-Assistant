@@ -18,6 +18,7 @@ class UsedUserModel(BaseModel):
   email: str
   date: str
 
+date_format = '%Y-%m-%d %H:%M:%S'
 
 @router.get("/chats")
 def listing_user(
@@ -35,7 +36,7 @@ def listing_user(
             responses.append(
                 UsedUserModel(
                     email=user.email,
-                    date=chat.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                    date=chat.created_at.strftime(date_format)
                 )
             )
     if email:
@@ -54,7 +55,7 @@ def listing_user(
                 "total_chat": 1
             }
     final_result = list(email_map.values())
-    sorted_result = sorted(final_result, key=lambda x: datetime.strptime(x['latest_used_date'], '%Y-%m-%d %H:%M:%S'))
+    sorted_result = sorted(final_result, key=lambda x: datetime.strptime(x['latest_used_date'], date_format))
 
     return sorted_result
 
@@ -75,7 +76,7 @@ def listing_user(
             responses.append(
                 UsedUserModel(
                     email=user.email,
-                    date=arena.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                    date=arena.created_at.strftime(date_format)
                 )
             )
     if email:
@@ -94,6 +95,6 @@ def listing_user(
                 "total_arena": 1
             }
     final_result = list(email_map.values())
-    sorted_result = sorted(final_result, key=lambda x: datetime.strptime(x['latest_used_date'], '%Y-%m-%d %H:%M:%S'))
+    sorted_result = sorted(final_result, key=lambda x: datetime.strptime(x['latest_used_date'], date_format))
 
     return sorted_result

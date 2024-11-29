@@ -3,8 +3,8 @@
 import React, { useState, useRef, useEffect, ReactNode, useMemo } from "react";
 import clsx from "clsx";
 import { scrollIntoView } from "seamless-scroll-polyfill";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import api from "@/api";
+import { sanitizedInput } from "@/app/utils/validator";
 
 import {
   InferenceModelType,
@@ -23,13 +23,14 @@ import Popover from "../common/Popover";
 import CopyButton from "../common/CopyButton";
 import LawReferenceSection from "../LawReferenceSection";
 import Checkbox from "../common/Checkbox";
+import ParseHTML from "../common/ParseHTML";
 
 import SendIcon from "@/public/icons/send.svg";
 import XCloseIcon from "@/public/icons/x-close.svg";
 import ClockRefreshIcon from "@/public/icons/clock-refresh.svg";
 import ArrowRightIcon from "@/public/icons/arrow-right.svg";
 import StopIcon from "@/public/icons/stop.svg";
-import api from "@/api";
+import { HTTP_429_TOO_MANY_REQUESTS } from "@/app/constants/httpResponse";
 
 const CHATBOT_ARENA_MAX_WIDTH = "1024px";
 const CHATBOT_ARENA_MAX_HEIGHT = "472px";
@@ -37,6 +38,7 @@ export enum ResponseStatus {
   PENDING = "PENDING",
   FAILED = "FAILED",
   DONE = "DONE",
+  TIMEOUT = "TIMEOUT",
 }
 
 type ArenaType = {
@@ -168,6 +170,12 @@ const ChatbotArenaSection = ({
     }
   }, [question]);
 
+  useEffect(() => {
+    if (questionInputRef.current) {
+      questionInputRef.current?.focus();
+    }
+  }, []);
+
   const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuestion(event.target.value);
   };
@@ -208,8 +216,7 @@ const ChatbotArenaSection = ({
         const data = await response.json();
         return data;
       } catch (error) {
-        console.error(error);
-        return null;
+        throw error;
       }
     }
     return null;
@@ -218,26 +225,28 @@ const ChatbotArenaSection = ({
   const sendQuestion = async () => {
     handleResetQuestion();
     const tempQuestion = question.trim();
-    if (tempQuestion && inferenceModelList.length > 0) {
+    const sanitizedQuestion: string = sanitizedInput(tempQuestion);
+
+    if (sanitizedQuestion && inferenceModelList.length > 0) {
       setLoadingState(true);
       setQuestion("");
-      setCurrentQuestion(question);
+      setCurrentQuestion(sanitizedQuestion);
       // loading
       try {
         // create arena
-        const response = await api.arena.createArena(tempQuestion);
+        const response = await api.arena.createArena(sanitizedQuestion);
         const arenaInfo: ArenaType = await response.json();
         const inferenceModels = shuffleArray(inferenceModelList);
         if (arenaInfo.id) {
           const [modelAResponse, modelBResponse] = await Promise.all([
             handleAskQuestion(
-              question,
+              sanitizedQuestion,
               inferenceModels?.[0]?.id || "",
               arenaInfo.id,
               ALIAS_MODEL_A
             ),
             handleAskQuestion(
-              question,
+              sanitizedQuestion,
               inferenceModels?.[1]?.id || "",
               arenaInfo.id,
               ALIAS_MODEL_B
@@ -281,11 +290,31 @@ const ChatbotArenaSection = ({
         await fetchArenaData();
       } catch (error) {
         setLoadingState(false);
+
         if (error instanceof ResponseError) {
-          handleAddNotification({
-            status: "error",
-            content: `Chatbot arena unavailable due to: ${error.response.status} Error`,
-          });
+          if (error.response.status === HTTP_429_TOO_MANY_REQUESTS) {
+            setArenaModelResponses((prevState) => {
+              const tempPrevState = JSON.parse(JSON.stringify(prevState));
+              tempPrevState[ALIAS_MODEL_A].status = ResponseStatus.TIMEOUT;
+              tempPrevState[ALIAS_MODEL_A].response = "";
+              tempPrevState[ALIAS_MODEL_B].status = ResponseStatus.TIMEOUT;
+              tempPrevState[ALIAS_MODEL_B].response = "";
+              return tempPrevState;
+            });
+            handleAddNotification({
+              status: "error",
+              content: `ไม่สามารถใช้งานแชทบอทอารีน่าได้ในขณะนี้ เนื่องจากผู้ใช้งานจำนวนมาก`,
+            });
+          } else {
+            setArenaModelResponses((prevState) => {
+              const tempPrevState = JSON.parse(JSON.stringify(prevState));
+              tempPrevState[ALIAS_MODEL_A].status = ResponseStatus.FAILED;
+              tempPrevState[ALIAS_MODEL_A].response = "";
+              tempPrevState[ALIAS_MODEL_B].status = ResponseStatus.FAILED;
+              tempPrevState[ALIAS_MODEL_B].response = "";
+              return tempPrevState;
+            });
+          }
         }
       }
 
@@ -413,7 +442,7 @@ const ChatbotArenaSection = ({
             style={{ maxWidth: CHATBOT_ARENA_MAX_WIDTH }}
           >
             {/* question */}
-            <div className="flex items-start justify-between gap-3 border border-primary-300 w-full p-4 rounded-xl text-base bg-primary-50 text-primary-700">
+            <div className="flex items-start justify-between whitespace-pre-line gap-3 border border-primary-300 w-full p-4 rounded-xl text-base bg-primary-50 text-primary-700">
               <p>{currentQuestion || QUESTION_PLACEHOLDER}</p>
               {currentQuestion && !loadingState && (
                 <button
@@ -430,8 +459,8 @@ const ChatbotArenaSection = ({
               )}
             </div>
             {/* arena */}
-            <div className={clsx("flex flex-col gap-4")}>
-              <div className="flex items-start lg:gap-8 sm:gap-4 gap-2">
+            <div className={clsx("flex flex-col gap-4 grow")}>
+              <div className="flex items-start lg:gap-8 sm:gap-4 gap-2 grow">
                 {Object.values(arenaModelResponses).map((modelAlias, index) => {
                   return (
                     <ModelAnswerCard
@@ -454,54 +483,62 @@ const ChatbotArenaSection = ({
                 })}
               </div>
               {/* options */}
-              <div
-                ref={userAnswerRef}
-                className="grid md:grid-cols-4 grid-cols-2 border border-gray-300 rounded-lg overflow-hidden"
-              >
-                {USER_ANSWER_OPTIONS.map((option, index) => {
-                  return (
-                    <button
-                      key={index}
-                      type="button"
-                      aria-label={option.name}
-                      className={clsx(
-                        "group flex items-center gap-2 justify-center py-2 px-4 hover:bg-gray-50 disabled:cursor-default last:md:border-r-0 md:border-r odd:border-r border-gray-300",
-                        selectedAnswer === option.name
-                          ? "bg-gray-50"
-                          : "bg-white disabled:hover:bg-white",
-                        index < USER_ANSWER_OPTIONS.length - 2 &&
-                          "md:border-b-0 border-b"
-                      )}
-                      onClick={() => handleSetSelectedAnswer(option)}
-                      disabled={
-                        selectedAnswer !== "" ||
-                        !currentQuestion ||
-                        loadingState
-                      }
-                    >
-                      <div
+              <div className="flex flex-col gap-1 pb-6">
+                <div className="text-sm text-gray-600 font-semibold">
+                  คุณชอบผลลัพท์ของโมเดลใดมากกว่ากัน
+                </div>
+                <div
+                  ref={userAnswerRef}
+                  className={clsx(
+                    "grid md:grid-cols-4 grid-cols-2 border border-gray-300 rounded-lg overflow-hidden",
+                    selectedAnswer && "opacity-80"
+                  )}
+                >
+                  {USER_ANSWER_OPTIONS.map((option, index) => {
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        aria-label={option.name}
                         className={clsx(
-                          "border border-gray-300 rounded-md h-6 flex items-center justify-center px-2 text-xs leading-[18px] text-gray-700 font-medium",
-                          selectedAnswer === "" &&
-                            "group-disabled:text-gray-400"
+                          "group flex items-center gap-2 justify-center py-2 px-4 hover:bg-gray-50 disabled:cursor-default last:md:border-r-0 md:border-r odd:border-r border-gray-300",
+                          selectedAnswer === option.name
+                            ? "bg-gray-50"
+                            : "bg-white disabled:hover:bg-white",
+                          index < USER_ANSWER_OPTIONS.length - 2 &&
+                            "md:border-b-0 border-b"
                         )}
+                        onClick={() => handleSetSelectedAnswer(option)}
+                        disabled={
+                          selectedAnswer !== "" ||
+                          !currentQuestion ||
+                          loadingState
+                        }
                       >
-                        {option.shortKey}
-                      </div>
-                      <span
-                        className={clsx(
-                          "text-gray-800 text-sm font-semibold",
-                          selectedAnswer === "" &&
-                            "group-disabled:text-gray-400"
-                        )}
-                      >
-                        {option.name}
-                      </span>
-                    </button>
-                  );
-                })}
+                        <div
+                          className={clsx(
+                            "border border-gray-300 rounded-md h-6 flex items-center justify-center px-2 text-xs leading-[18px] text-gray-700 font-medium",
+                            selectedAnswer === "" &&
+                              "group-disabled:text-gray-400"
+                          )}
+                        >
+                          {option.shortKey}
+                        </div>
+                        <span
+                          className={clsx(
+                            "text-gray-800 text-sm font-semibold",
+                            selectedAnswer === "" &&
+                              "group-disabled:text-gray-400"
+                          )}
+                        >
+                          {option.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div
+              {/* <div
                 ref={modelRevealRef}
                 className="flex flex-col items-center gap-4"
               >
@@ -538,7 +575,7 @@ const ChatbotArenaSection = ({
                 ) : (
                   <></>
                 )}
-              </div>
+              </div> */}
             </div>
           </section>
         </div>
@@ -578,7 +615,7 @@ const ChatbotArenaSection = ({
               onKeyDown={handleKeyDown}
               rows={1}
               placeholder="พิมพ์ข้อความที่นี่..."
-              className="box-border flex text-md min-h-11 text-gray-900 rounded-l-lg border border-gray-300 shadow-xs outline-none rounded-r-lg w-full py-2.5 pl-3.5 pr-12"
+              className="box-border flex text-md min-h-11 text-gray-900 rounded-l-lg border border-gray-300 shadow-xs outline-none rounded-tr-lg rounded-br-lg w-full py-2.5 pl-3.5 pr-12"
               style={{ height: "44px" }}
               disabled={loadingState}
             />
@@ -586,7 +623,7 @@ const ChatbotArenaSection = ({
               disabled={!question || loadingState}
               type="button"
               aria-label="ส่งคำถาม"
-              className="absolute h-full w-11 shrink-0 rounded-r-lg right-0 top-0 btn-primary flex items-center justify-center"
+              className="absolute h-full w-11 shrink-0 rounded-tr-lg rounded-br-lg right-0 top-0 btn-primary flex items-center justify-center"
               onClick={sendQuestion}
             >
               <SendIcon className="w-5 h-5" />
@@ -630,10 +667,10 @@ const ModelAnswerCard = ({
   }, [lawReferences]);
 
   return (
-    <div className="h-full grow basis-0 shrink-0 flex flex-col items-start gap-1 relative pt-2 pb-10 bg-white border border-gray-200 rounded-xl">
+    <div className="grow basis-0 shrink-0 flex flex-col items-start gap-1 relative pt-2 pb-10 bg-white border border-gray-200 rounded-xl">
       {/* model name */}
       <div className="px-4">{modelNameElement}</div>
-      <div className="overflow-auto flex px-4 min-h-56 2xl:h-80 xl:h-54 h-52">
+      <div className="overflow-auto flex px-4 min-h-56 2xl:h-80 xl:h-54 h-52 grow">
         {loadingState ? (
           <div className="pt-5">
             <LoadingThreeDots />
@@ -642,19 +679,17 @@ const ModelAnswerCard = ({
           <>
             {status === ResponseStatus.FAILED ? (
               <p className="text-error-400 text-base">Failed</p>
+            ) : status === ResponseStatus.TIMEOUT ? (
+              <p className="whitespace-pre-line text-gray-400">
+                ขออภัย ขณะมีผู้ใช้งานจำนวนมาก
+                <br />
+                กรุณากลับมาอีกครั้งใน 1 นาที
+              </p>
             ) : (
               <>
                 {status === ResponseStatus.DONE ? (
                   <>
-                    <Markdown
-                      remarkPlugins={[remarkGfm]}
-                      className={clsx(
-                        "text-base whitespace-pre-line answer-section",
-                        answer ? "text-gray-600" : "text-gray-400"
-                      )}
-                    >
-                      {answer || "No result."}
-                    </Markdown>
+                    <ParseHTML markdown={answer || "No result."} />
                   </>
                 ) : (
                   <></>
@@ -848,7 +883,6 @@ const HistoryPopup = ({
                             key={index}
                             alias={modelResponse.alias}
                             answer={modelResponse.answer || ""}
-                            modelName={model?.name || ""}
                           />
                         );
                       }
@@ -907,9 +941,11 @@ const HistoryPopup = ({
       >
         <button
           type="button"
-          aria-label="History"
+          aria-label="Arena history"
           className="btn-secondary rounded-lg p-2 transition-all animate-fade-in"
           onClick={handleShowHistoryPopup}
+          data-tooltip="ประวัติการใช้งาน"
+          data-tooltip-align="top-left"
         >
           <ClockRefreshIcon className="w-5 h-5" />
         </button>
@@ -918,35 +954,15 @@ const HistoryPopup = ({
   );
 };
 
-const HistoryCard = ({
-  alias,
-  answer,
-  modelName,
-}: {
-  alias: string;
-  answer: string;
-  modelName: string;
-}) => {
-  const [showModelName, setShowModelName] = useState(false);
+const HistoryCard = ({ alias, answer }: { alias: string; answer: string }) => {
   return (
     <div className="grow basis-0 h-full items-start overflow-hidden border border-gray-200 flex flex-col rounded-lg pt-2">
-      <button
-        type="button"
-        aria-label={alias}
-        className="!font-inter break-words p-2 mx-2 flex items-center justify-center gap-1 rounded-2xl py-0.5 bg-blue-50 hover:bg-blue-100 disabled:hover:bg-blue-50 border border-blue-200 text-xs leading-[18px] font-medium text-blue-700"
-        onClick={() => setShowModelName(!showModelName)}
-        disabled={modelName === ""}
-      >
-        {showModelName && modelName !== "" ? modelName : alias}
-      </button>
+      <div className="!font-inter break-words p-2 mx-2 flex items-center justify-center gap-1 rounded-2xl py-0.5 bg-blue-50 hover:bg-blue-100 disabled:hover:bg-blue-50 border border-blue-200 text-xs leading-[18px] font-medium text-blue-700">
+        {alias}
+      </div>
       <div className="grow overflow-auto custom-word-break break-words px-2 pt-1 pb-2">
         {answer ? (
-          <Markdown
-            remarkPlugins={[remarkGfm]}
-            className="text-gray-600 answer-section whitespace-pre-line"
-          >
-            {answer}
-          </Markdown>
+          <ParseHTML markdown={answer || ""} />
         ) : (
           <p className="text-gray-400">No result.</p>
         )}

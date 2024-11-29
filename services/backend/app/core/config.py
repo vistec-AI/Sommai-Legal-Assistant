@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     KEYCLOAK_REALM_ADMIN: str = ""
     KEYCLOAK_REALM_ADMIN_PASSWORD: str = ""
     FRONTEND_URL: str = ""
+    MAIL_USERNAME: str = ""
+    MAIL_PASSWORD: str = ""
+    MAIL_FROM: str = ""
+    MAIL_PORT: str = ""
+    MAIL_SERVER: str = ""
 
 
 

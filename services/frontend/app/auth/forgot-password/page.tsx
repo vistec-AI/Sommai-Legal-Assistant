@@ -4,41 +4,38 @@ import ForgotPasswordForm from "@/app/components/auth/ForgotPasswordForm";
 import ArrowRightIcon from "@/public/icons/arrow-right.svg";
 
 export const metadata = {
-  title: "รีเซ็ตรหัสผ่าน | สมหมาย",
-  description: "วิธีการรีเซ็ตรหัสผ่านของสมหมาย",
+  title: "ตั้งค่ารหัสผ่านใหม่ | สมหมาย",
+  description: "ตั้งค่ารหัสผ่านของแชทบอทสมหมายใหม่",
 };
 
 const ForgotPasswordPage = ({ searchParams }: any) => {
   return (
     <section className="transition-all max-w-[1440px] mx-auto relative flex flex-col gap-16 justify-start items-center grow">
-      <div className="flex flex-col gap-4 relative w-full">
+      <div className="flex flex-col gap-4 relative w-full items-center">
         {/* header */}
         <h1 className="text-center mx-auto w-fit bg-clip-text text-transparent bg-gradient-primary font-semibold">
-          รีเซ็ตรหัสผ่าน
+          ตั้งค่ารหัสผ่านใหม่
         </h1>
         {/* detail for resetting password */}
-        <section className="flex flex-col gap-4 text-left w-full">
-          <p className="text-gray-700 sm:text-lg leading-[26px]">
-            หากคุณต้องการเปลี่ยนรหัสผ่านสำหรับบัญชีของคุณ
-            <br />
-            กรุณาส่งอีเมลมาที่{" "}
-            <a
-              href="mailto:contact@vistec.ac.th"
-              className="font-bold text-gray-900"
-            >
-              contact@vistec.ac.th
-            </a>
-            <br />
-          </p>
-          <p className="text-gray-700 sm:text-lg">โดยมีรายละเอียดดังนี้:</p>
-          <ol className="font-medium list-decimal text-gray-600 flex flex-col gap-3 sm:text-lg">
-            <li>
-              ใช้หัวข้ออีเมล (Subject):{" "}
-              <span className="font-bold">แจ้งความต้องการรีเซ็ตรหัสผ่าน</span>
-            </li>
-            <li>ระบุอีเมลที่ใช้สมัครบัญชีของคุณในเนื้อหาอีเมล</li>
-          </ol>
-        </section>
+        {searchParams.email ? (
+          <>
+            <p className="text-gray-600 sm:text-lg leading-[26px] text-center">
+              เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปที่{" "}
+              <span className="font-medium">{searchParams.email}</span>
+              <br />
+              โปรดตรวจสอบกล่องจดหมายของคุณและคลิกที่ลิงก์ที่ได้รับเพื่อ
+              <br />
+              รีเซ็ตรหัสผ่าน
+            </p>
+          </>
+        ) : (
+          <section className="flex flex-col gap-4 text-left w-full max-w-[373px]">
+            <p className="text-gray-600 sm:text-lg leading-[26px] text-center">
+              โปรดใส่อีเมลที่ลงทะเบียนไว้ด้านล่างและเราจะส่งลิงก์ให้คุณเพื่อรีเซ็ตรหัสผ่านของคุณ
+            </p>
+            <ForgotPasswordForm />
+          </section>
+        )}
       </div>
       {!searchParams?.email && (
         <section className="flex items-center gap-2">

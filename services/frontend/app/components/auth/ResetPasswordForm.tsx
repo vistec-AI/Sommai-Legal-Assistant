@@ -67,14 +67,18 @@ const ResetPasswordForm = () => {
             HTTP_RESPONSE_CODE[HTTP_401_UNAUTHORIZED]
               .INVALID_RESET_PASSWORD_TOKEN
           ) {
-            setServiceErrorMessage("โทเค็นไม่ถูกต้อง");
+            setServiceErrorMessage(
+              "โทเค็นไม่ถูกต้อง โปรดตรวจสอบอีเมลอีกครั้ง หรือส่งคำขอเปลี่ยนรหัสผ่านใหม่"
+            );
             return;
           } else if (
             error.response.code ===
             HTTP_RESPONSE_CODE[HTTP_401_UNAUTHORIZED]
               .RESET_PASSWORD_TOKEN_EXPIRED
           ) {
-            setServiceErrorMessage("โทเค็นหมดอายุแล้ว");
+            setServiceErrorMessage(
+              "โทเค็นหมดอายุแล้ว โปรดส่งคำขอเปลี่ยนรหัสผ่านใหม่อีกครั้ง"
+            );
             return;
           }
         }
@@ -104,8 +108,7 @@ const ResetPasswordForm = () => {
           }}
         />
         <PasswordInput
-          type="password"
-          id="cofirmResetPassword"
+          id="confirmResetPassword"
           name="confirmPassword"
           onChange={handleConfirmPasswordChange}
           value={confirmPassword}
@@ -122,7 +125,7 @@ const ResetPasswordForm = () => {
           ตั้งค่ารหัสผ่าน
         </button>
         {serviceErrorMessage && (
-          <p className="text-error-600 whitespace-pre-line text-sm text-center">
+          <p className="text-gray-600 whitespace-pre-line text-sm text-center">
             {serviceErrorMessage}
             <br />
             ต้องการความช่วยเหลือ ติดต่อพวกเราได้ที่{" "}

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, UUID4
-from app.custom_models.models import USER_STATUS
+from app.custom_models.models import UserStatus
 
 
 # Shared properties
@@ -18,6 +18,8 @@ class UserCreate(UserBase):
     keycloak_user_id: UUID4
     status: Optional[str] = "ACTIVE"
     has_accepted_terms: Optional[bool] = True
+    token: Optional[str] = None
+    token_expiration: Optional[datetime] = None
 
 # Properties to receive via API on update
 class UserUpdate(UserBase):

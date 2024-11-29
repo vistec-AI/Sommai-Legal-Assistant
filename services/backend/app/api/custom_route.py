@@ -67,7 +67,14 @@ class AuthenticatedRoute(APIRoute):
                     status_code=status.HTTP_401_UNAUTHORIZED,
                 )
             except Exception as e:
-                raise e
+                print(str(e))
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail={
+                        "code": "internal_server_error",
+                        "description": str(e)
+                    }
+                )
 
             if jwt_header["alg"] != "RS256":
                 raise HTTPException(

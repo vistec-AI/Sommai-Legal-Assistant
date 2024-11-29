@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Noto_Sans_Thai } from "next/font/google";
 import localFont from "next/font/local";
 import { Provider } from "./context";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import HotjarScript from "./components/HotjarScript";
+import { headers } from "next/headers";
 
 import "./globals.css";
 
@@ -17,36 +19,10 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const sukhumvit = localFont({
-  src: [
-    {
-      path: "../public/fonts/Sukhumvit/SukhumvitSet-Thin.ttf",
-      weight: "200",
-      style: "normal",
-    },
-    {
-      path: "../public/fonts/Sukhumvit/SukhumvitSet-Light.ttf",
-      weight: "300",
-      style: "normal",
-    },
-    {
-      path: "../public/fonts/Sukhumvit/SukhumvitSet-Medium.ttf",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../public/fonts/Sukhumvit/SukhumvitSet-SemiBold.ttf",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "../public/fonts/Sukhumvit/SukhumvitSet-Bold.ttf",
-      weight: "600",
-      style: "normal",
-    },
-  ],
-  variable: "--font-sukhumvit",
+const notoSansThai = Noto_Sans_Thai({
+  subsets: ["latin"],
   display: "swap",
+  variable: "--font-noto",
 });
 
 export const metadata: Metadata = {
@@ -73,8 +49,8 @@ export default function RootLayout({
         <Provider>
           <main
             className={clsx(
-              "flex flex-col justify-between font-sukhumvit h-[100dvh] overflow-hidden",
-              sukhumvit.variable,
+              "flex flex-col justify-between font-noto h-[100dvh] overflow-hidden",
+              notoSansThai.variable,
               inter.variable
             )}
           >

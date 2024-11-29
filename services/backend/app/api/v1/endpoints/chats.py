@@ -39,6 +39,9 @@ from app.custom_models.models import ModelResponseStatus
 from app.custom_models.models import LawReference
 from pydantic import BaseModel
 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
 class ChatRetrieval(BaseModel):
   chat_id: UUID4
   inference_model_id: UUID4
@@ -61,6 +64,8 @@ rabbitmq_client = RabbitMQBroker(
 
 MESSAGE_STREAM_DELAY = 0.01 # 1 milliseconds
 MESSAGE_STREAM_RETRY_TIMEOUT = 3000  # milliseconds
+
+limiter = Limiter(key_func=get_remote_address)
 
 
 def chat_room_exists(db: Session, chat_room_id: UUID4) -> bool:
@@ -186,7 +191,7 @@ async def retrieval_law_reference(
                     law_references = None
 
             chat_update_in = schemas.ChatUpdate(law_references=law_references)
-            updated_chat = crud.chat.update(db=db, db_obj=chat, obj_in=chat_update_in)
+            crud.chat.update(db=db, db_obj=chat, obj_in=chat_update_in)
             return {"law_references": law_references}
     except httpx.TimeoutException as exc:
         raise HTTPException(
@@ -240,6 +245,7 @@ async def retrieval_law_reference(
 
 # create a chat then ask question to the model and update answer to the chat
 @router.post("/question", response_class=EventSourceResponse)
+@limiter.limit("30/second")
 async def create_chat(
     *,
     db: Session = Depends(deps.get_db),
@@ -307,18 +313,18 @@ async def create_chat(
     try:
         async def stream_model_data():
             async with httpx.AsyncClient(timeout=120) as client:
-                buffer = ""
+                text_buffer = ""
                 try:
                     async with client.stream("POST", url, json=payload, headers=headers) as response:
                         try:
                             async for chunk in response.aiter_bytes():
                                 if chunk:
                                     chunk_data = chunk.decode("utf-8")
-                                    buffer += chunk_data
+                                    text_buffer += chunk_data
                                     try:
-                                        escaped_text = escape_inner_quotes(buffer)
+                                        escaped_text = escape_inner_quotes(text_buffer)
                                         chunk_json_obj = json.loads(escaped_text, strict=False)
-                                        buffer = ""
+                                        text_buffer = ""
                                         if "text" in chunk_json_obj:
                                             yield chunk_json_obj["text"]
                                         else:
@@ -340,6 +346,8 @@ async def create_chat(
                             "description": f"Connection error: {exc}"
                         }
                     )
+                except asyncio.exceptions.CancelledError:
+                    print(f"Asyncio cancelled error")
                 except Exception as e:
                     print(f"An error occurred: {str(e)}")
     except httpx.TimeoutException as exc:
@@ -448,18 +456,6 @@ async def create_chat(
                 "description": f"An unexpected error occurred while streaming: {exc}"
             }
         )
-
-# mock streaming
-async def mock_paragraph():
-    # Example paragraph to send as stream events
-    paragraph = "Green tea comes from unoxidized leaves of the Camellia sinensis bush. It is one of the least processed types of tea, containing the most antioxidants and beneficial polyphenols. Some research suggests green tea may positively affect weight loss, liver disorders, type 2 diabetes, Alzheimer’s disease, and more. However, more evidence is necessary for researchers to definitively prove these health benefits. This article lists some potential health benefits and types of green tea, its nutrition content, and the potential side effects."
-
-    # Split the paragraph into words
-    words = paragraph.split()
-    collected_answer = []
-    for word in words:
-        yield word + " "
-        await asyncio.sleep(0.1)
 
 @router.put("/{id}", response_model=schemas.Chat)
 def update_chat(

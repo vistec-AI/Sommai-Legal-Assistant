@@ -16,6 +16,12 @@ from pydantic import BaseModel
 from app.custom_models.models import ChatJobInQueueMessage
 from app.processing.process_chat import ChatProcessor
 
+# rate limit
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
@@ -68,7 +74,6 @@ async def consume_job(loop, rabbitmq_client):
         # Sleep for 3 seconds
         await asyncio.sleep(3)
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
@@ -114,7 +119,20 @@ async def lifespan(app: FastAPI):
         )
     )
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(lifespan=lifespan)
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+            status_code=429,
+            content={
+                "detail": {
+                    "code": "too_many_requests",
+                    "description": f"Too Many Requests"
+                }
+            }
+        )
 
 origins = [
     "*"

@@ -5,7 +5,7 @@
 import { redirect } from 'next/navigation';
 import { ResponseError } from "@/app/types";
 import { HTTP_401_UNAUTHORIZED, HTTP_RESPONSE_CODE } from "@/app/constants/httpResponse";
-import { getTokens, TOKEN, getAccessToken, setUserTokens } from '../auth';
+import { getTokens, TOKEN, SECURE_OPTION, setUserTokens } from '../auth';
 
 const BACKEND_URL = process.env["NEXT_PUBLIC_BACKEND_API"];
 const isServer = typeof window === 'undefined';
@@ -74,7 +74,7 @@ async function makeFetch(
         const { cookies } = await import('next/headers');
         const expireDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
         try {
-          cookies().set(TOKEN, JSON.stringify(refreshData), { path: '/', expires: expireDate })
+          cookies().set(TOKEN, JSON.stringify(refreshData), { path: '/', expires: expireDate, ...SECURE_OPTION })
         } catch (e) { }
       } else {
         setUserTokens(refreshData)
@@ -84,7 +84,7 @@ async function makeFetch(
     throw new ResponseError("Failed to fetch data", {
       status: response.status,
       code: errorData?.detail?.code,
-      description: errorData?.detail?.description,
+      description: errorData?.detail?.description
     });
   }
   return response;

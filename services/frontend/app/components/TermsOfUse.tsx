@@ -1,6 +1,6 @@
 const TermsOfUse = () => {
   return (
-    <section className="flex flex-col gap-3 nested-list sm:text-base text-sm">
+    <section className="flex flex-col gap-3 custom-nested-list sm:text-base text-sm">
       <h5 className="font-semibold text-center">
         ข้อกำหนดและเงื่อนไขการใช้งาน
       </h5>

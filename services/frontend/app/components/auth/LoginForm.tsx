@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Input from "@/app/components/common/Input";
 import { UserFormProps, ResponseError } from "@/app/types";
-import { validateEmail } from "@/app/utils/validator";
+import { validateEmail, sanitizedInput } from "@/app/utils/validator";
 import { setUserTokens, TokenType } from "@/app/utils/auth";
 import LoadingThreeDots from "./LoadingThreeDots";
 import { useLoading } from "@/app/context/LoadingFullScreenContext";
@@ -100,9 +100,13 @@ const LoginForm = () => {
       setEmailError(true);
       return;
     }
+    const sanitizedEmail = sanitizedInput(customEmail);
     try {
       setLoadingState(true);
-      const response = await api.auth.login({ email: customEmail, password });
+      const response = await api.auth.login({
+        email: sanitizedEmail,
+        password,
+      });
 
       const tokens = await response.json();
       setCurrentTokens(tokens);
@@ -147,6 +151,12 @@ const LoginForm = () => {
           ) {
             setErrorMessage("บัญชีของคุณถูกระงับ โปรดติดต่อฝ่ายสนับสนุน");
             setLoadingState(false);
+            return;
+          } else if (
+            error.response.code ===
+            HTTP_RESPONSE_CODE[HTTP_401_UNAUTHORIZED].EMAIL_NOT_VERIFIED
+          ) {
+            router.push(`/auth/verify-email?email=${sanitizedEmail}`);
             return;
           }
         }

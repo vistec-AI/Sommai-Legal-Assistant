@@ -31,6 +31,7 @@ import LogoutIcon from "@/public/icons/log-out.svg";
 import MenuIcon from "@/public/icons/menu.svg";
 // modal
 import AlertTriangleIcon from "@/public/icons/alert-triangle.svg";
+import { sanitizedInput } from "@/app/utils/validator";
 
 const CHAT_ACTION_WIDTH = "255px";
 const SIDEBAR_CONTAINER_ID = "sidebarContainer";
@@ -87,7 +88,7 @@ const ChatbotSidebar = ({
           <div
             id={"backdropSidebar"}
             style={{ zIndex: Z_INDEX.SIDEBAR_BACKDROP }}
-            className="md:hidden absolute w-screen h-screen bg-black/30"
+            className="md:hidden absolute w-[100dvw] h-[100dvh] bg-black/30"
           ></div>
         )}
         <div
@@ -95,7 +96,7 @@ const ChatbotSidebar = ({
           className={clsx(
             "md:relative h-full absolute grow md:w-auto",
             showSidebar
-              ? "w-screen flex animate-slide-from-left"
+              ? "w-[100dvw] flex animate-slide-from-left"
               : "md:flex hidden"
           )}
         >
@@ -317,7 +318,7 @@ const ChatbotSidebarBody = ({
                       key={`${index}`}
                       className="h-[58px] shrink-0 w-full rounded-xl overflow-auto bg-gray-100 animate-pulse duration-300"
                     >
-                      <div className="text-gray-700 font-semibold text-base truncate opacity-0 w-screen"></div>
+                      <div className="text-gray-700 font-semibold text-base truncate opacity-0 w-[100dvw]"></div>
                     </li>
                   );
                 })}
@@ -660,12 +661,16 @@ const ChatLink = ({
     event.stopPropagation();
 
     const originalChatRoom = chatRoom?.name || "";
+    const sanitizedNewChatRoomName = sanitizedInput(newChatRoomName);
     try {
-      await api.chatRooms.renameChatRoom(chatRoom?.id, newChatRoomName);
-      handleSetNewChatRoomNameByID(chatRoom.id, newChatRoomName);
+      await api.chatRooms.renameChatRoom(
+        chatRoom?.id,
+        sanitizedNewChatRoomName
+      );
+      handleSetNewChatRoomNameByID(chatRoom.id, sanitizedNewChatRoomName);
       handleAddNotification({
         status: "success",
-        content: `เปลี่ยนชื่อจาก ‘${originalChatRoom}’ เป็น ‘${newChatRoomName}’`,
+        content: `เปลี่ยนชื่อจาก ‘${originalChatRoom}’ เป็น ‘${sanitizedNewChatRoomName}’`,
       });
     } catch (error) {
       if (error instanceof ResponseError) {

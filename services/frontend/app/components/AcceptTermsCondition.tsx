@@ -13,18 +13,11 @@ const AcceptTermsCondition = ({
   handleIsAcceptedTermsCondition,
 }: AcceptTermsConditionProps) => {
   // Terms of use and privacy notice
-  const [alreadyAcceptTermsCondition, setAlreadyAcceptTermsCondition] =
-    useState<boolean>(true);
   const [showTermsConditionPopup, setShowTermsConditionPopup] =
     useState<boolean>(false);
   const [alreadyShowTermsConditionPopup, setAlreadyShowTermsConditionPopup] =
     useState<boolean>(false);
 
-  // useEffect(() => {
-  //   const termsHistory = getAcceptTermsHistory();
-  //   setAlreadyAcceptTermsCondition(termsHistory);
-  //   handleIsAcceptedTermsCondition(termsHistory);
-  // }, []);
 
   const handleShowTermsConditionPopup = () => {
     setShowTermsConditionPopup(true);

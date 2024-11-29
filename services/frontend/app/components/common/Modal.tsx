@@ -62,7 +62,7 @@ const Modal = ({
             }
           }}
         ></div>
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex items-center justify-center h-[100dvh]">
           <div
             className={clsx(
               "relative bg-white rounded-xl shadow-xl !max-h-[90vh] !max-w-[90vw] overflow-hidden",

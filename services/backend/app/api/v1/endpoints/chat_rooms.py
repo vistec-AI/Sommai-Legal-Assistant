@@ -24,6 +24,8 @@ from sqlalchemy.orm import Session
 
 router = APIRouter(route_class=AuthenticatedRoute)
 
+chat_room_not_found = "Chat room not found"
+
 @router.get("/", response_model=List[schemas.ChatRoom])
 def read_chat_rooms(
     db: Session = Depends(deps.get_db),
@@ -64,7 +66,7 @@ def read_chat_room_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={
                 "code": "not_found",
-                "description": "Chat room not found"
+                "description": chat_room_not_found
             }
         )
     return chat_room
@@ -95,7 +97,7 @@ def update_chat_room(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={
                 "code": "not_found",
-                "description": "Chat room not found"
+                "description": chat_room_not_found
             }
         )
 
@@ -114,7 +116,7 @@ def delete_chat_room(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={
                 "code": "not_found",
-                "description": "Chat room not found"
+                "description": chat_room_not_found
             }
         )
     chat_room = crud.chat_room.remove(db=db, id=id)

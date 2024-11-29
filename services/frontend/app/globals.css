@@ -3,73 +3,94 @@
 @tailwind utilities;
 
 @layer base {
-  .answer-section > ul {
-    margin-top: -20px;
-    list-style-type: disc;
-    list-style-position: inside;
-    display: grid;
+  .markdown > * {
+    all: revert;
   }
-  .answer-section > ul > li:not(:has(p)) {
-    display: list-item;
-    margin-bottom: 0.5rem;
-  }
-  .answer-section > ul > li:has(p) {
-    display: inline-table;
-    margin-bottom: 0.5rem;
-  }
- .answer-section > ul > li > p {
-    display: list-item;
-    margin: 0;
- }
-
- .answer-section > ul > li:has(p)::marker {
-   content: "";
-   display: list-item;
-   position: absolute;
- }
-
- .answer-section > ul > li > p::marker {
-   /* content: ""; */
-   display: list-item;
-   position: absolute;
- }
-
-  .answer-section > ol {
-    margin-top: -20px;
+  .markdown > ol {
+    list-style: decimal;
+    padding-left: 2rem;
   }
 
   ol {
+    display: inline-table;
     list-style-type: decimal;
     counter-reset: section;
   }
 
   ol > li {
     display: list-item;
-    list-style-position: inside;
     counter-increment: section;
     list-style: none;
   }
 
-  ol {
+  .custom-nested-list > ol {
     counter-reset: section;
   }
 
-  ol > li::before {
+  .custom-nested-list > ol > li::before {
     content: counter(section) ". ";
   }
 
-  ol > li > ol {
+  .custom-nested-list > ol > li > ol {
     counter-reset: subsection;
     padding-left: 16px;
   }
 
-  ol > li > ol > li {
+  .custom-nested-list > ol > li > ol > li {
     list-style: none;
     counter-increment: subsection;
   }
 
-  ol > li > ol > li::before {
+  .custom-nested-list > ol > li > ol > li::before {
     content: counters(section, ".") "." counter(subsection) ". ";
+  }
+
+  [data-tooltip] {
+    @apply relative z-[100];
+  }
+
+  [data-tooltip-align="right"]:before {
+    @apply !translate-x-[-100%] !left-[140%];
+  }
+
+  [data-tooltip-align="left"]:before {
+    @apply !translate-x-[0] !left-[-40%];
+  }
+
+  [data-tooltip-align="top-left"]:before {
+    @apply !translate-x-[0] !right-[0%];
+  }
+
+  [data-tooltip-align="bottom"]:before {
+    @apply !top-[calc(100%+10px)]
+  }
+
+  [data-tooltip-align="bottom"]:after {
+    @apply !top-full rotate-180
+  }
+
+  [data-tooltip]:before,
+  [data-tooltip]:after {
+    @apply absolute opacity-0 invisible bottom-[calc(100%+5px)] -translate-x-1/2 z-[1000] transition-all duration-200;
+  }
+
+  [data-tooltip]:after {
+    @apply content-[''] -translate-x-1/2 top-[-8px] border-[6px] border-x-transparent border-b-transparent border-t-gray-50 shadow-lg;
+  }
+
+  [data-tooltip]:hover:before,
+  [data-tooltip]:hover:after {
+    @apply visible transition-all duration-200 opacity-100;
+  }
+
+  [data-tooltip]:before {
+    content: attr(data-tooltip);
+    @apply h-fit bg-gray-50 text-gray-700 font-semibold shadow-md bottom-[calc(100%+5px)] text-center text-xs rounded-lg px-3 py-2 pointer-events-none leading-tight whitespace-pre-line max-w-[300px] min-w-[50px] w-max;
+  }
+
+  [data-tooltip-text-align="left"]:before {
+    content: attr(data-tooltip);
+    @apply !text-left;
   }
 
   h1 {
@@ -132,7 +153,7 @@
     @apply bg-gradient-primary bg-origin-border hover:bg-gradient-primary-dark group-hover:bg-gradient-primary-dark focus:ring-4 focus:ring-[#9E77ED3D] disabled:bg-none shadow-xs border border-transparent hover:border-transparent group-hover:border-transparent disabled:bg-gray-100 disabled:text-gray-400 text-white disabled:border-gray-200 disabled:hover:bg-gray-100 disabled:hover:border-gray-200
   }
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 group-hover:bg-gray-50 focus:ring-4 focus:ring-gray-100 shadow-xs border border-gray-300 disabled:border-gray-200 text-gray-700 disabled:text-gray-300 disabled:hover:bg-gray-100
+    @apply bg-white hover:bg-gray-50 group-hover:bg-gray-50 focus:ring-4 focus:ring-gray-100 shadow-xs border border-gray-300 disabled:border-gray-200 text-gray-700 disabled:text-gray-300 disabled:hover:bg-white
   }
   .btn-error {
     @apply bg-error-600 hover:bg-error-700 focus:ring-4 focus:ring-error-100 shadow-xs border border-error-600 disabled:border-error-200 text-white disabled:bg-error-200 disabled:hover:bg-error-200
@@ -171,7 +192,7 @@
 
   .custom-word-break {
     word-break: break-word;
-  };
+  }
 
   .border-gradient-primary-dark {
     border-image-source: linear-gradient(0deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)) linear-gradient(90deg, #7873F5 0%, #E9465A 100%);

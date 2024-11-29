@@ -12,7 +12,7 @@ class ModelResponseStatus(Enum):
     PROCESSING = "PROCESSING"
     DONE = "DONE"
 
-class USER_STATUS(Enum):
+class UserStatus(Enum):
     ACTIVE = "ACTIVE"
 
 class LawReference(BaseModel):

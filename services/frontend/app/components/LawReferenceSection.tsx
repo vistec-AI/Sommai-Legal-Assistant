@@ -23,7 +23,7 @@ const LawReferenceSection = ({
       if (firstRef.current) {
         scrollIntoView(firstRef.current, {
           behavior: "smooth",
-          block: "center",
+          block: "start",
           inline: "nearest",
         });
       }
@@ -62,7 +62,7 @@ const LawReferenceSection = ({
             <div
               ref={index === 0 ? firstRef : null}
               key={index}
-              className="flex flex-col gap-2"
+              className="flex flex-col gap-2 scroll-mt-[70px]"
             >
               <p
                 className={clsx(

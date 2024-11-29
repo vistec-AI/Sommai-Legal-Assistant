@@ -22,7 +22,7 @@ export default async function fetchWithoutAuth(
     throw new ResponseError("Failed to fetch data", {
       status: response.status,
       code: errorData?.detail?.code,
-      description: errorData?.detail?.description,
+      description: errorData?.detail?.description
     });
   }
   return response;

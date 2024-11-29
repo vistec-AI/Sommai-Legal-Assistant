@@ -21,7 +21,7 @@ const LoadingFullScreen = ({
           backgroundClassName
         )}
       ></div>
-      <div className="flex items-center flex-col gap-2 justify-center h-screen relative">
+      <div className="flex items-center flex-col gap-2 justify-center h-[100dvh] relative">
         {loadingText && (
           <span className="text-gray-500 font-medium text-center">
             {loadingText}
