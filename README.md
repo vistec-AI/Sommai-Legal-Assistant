@@ -35,6 +35,7 @@ The kustomization structure is organized as follows:
 │   ├── embedding
 │   ├── frontend
 │   ├── llm
+│   │   ├──wangchanx
 │   │   ├──meta-llama-3
 │   │   ├──meta-llama-3-1
 │   │   ├──scb-typhoon-1-5
@@ -69,7 +70,7 @@ Holds the resources for the frontend web interface of the project.
 
 #### LLM (Large Language Models)
 Contains subdirectories for different LLM models used in the project.
-- `meta-llama-3`, `meta-llama-3-1`, `scb-typhoon-1-5`, `sea-lion-2-1`: Each subdirectory contains deployment, service, and kustomization files to manage specific LLM deployments.
+- `wangchanx`, `meta-llama-3`, `meta-llama-3-1`, `scb-typhoon-1-5`, `sea-lion-2-1`: Each subdirectory contains deployment, service, and kustomization files to manage specific LLM deployments.
 
 #### RAG (Retrieval Augmented Generation)
 Manages the RAG service, which is responsible for integrating retrieval capabilities with generative models.
@@ -121,5 +122,5 @@ Message broker service for handling messaging between services.
   ```bash
   kustomize build applications/embedding | kubectl apply -f -
   ```
-- Access the frontend application via the web gateway.
+- Access the frontend application.
 - For authentication, use Keycloak to manage users and roles.
