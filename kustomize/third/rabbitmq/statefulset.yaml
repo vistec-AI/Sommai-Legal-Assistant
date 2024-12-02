@@ -3,7 +3,7 @@ kind: StatefulSet
 metadata:
   name: rabbitmq
 spec:
-  serviceName: default
+  serviceName: rabbitmq
   template:
     spec:
       containers:
@@ -18,11 +18,11 @@ spec:
         - name: RABBITMQ_NODENAME
           value: rabbitmq@localhost
         volumeMounts:
-        - name: mnesia
+        - name: rabbitmq-storage
           mountPath: /var/lib/rabbitmq/mnesia
   volumeClaimTemplates:
   - metadata:
-      name: mnesia
+      name: rabbitmq-storage
     spec:
       accessModes: ["ReadWriteOnce"]
       resources:

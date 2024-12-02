@@ -11,6 +11,7 @@ resources:
 - ../applications/llm/meta-llama-3-1
 - ../applications/llm/scb-typhoon-1-5
 - ../applications/llm/sea-lion-2-1
+- ../applications/llm/wangchanx
 secretGenerator:
 - envs:
   - rag.env

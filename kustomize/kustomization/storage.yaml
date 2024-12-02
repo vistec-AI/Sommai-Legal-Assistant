@@ -1,0 +1,187 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pg-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  claimRef:
+    namespace: sommai
+    name: pg-storage-postgres-0
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/mnt/postgres"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: rabbitmq-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  claimRef:
+    namespace: sommai
+    name: rabbitmq-storage-rabbitmq-0
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/mnt/rabbitmq"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sea-lion-2-1-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sea-lion-2-1-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+  - ReadWriteOnce
+  claimRef:
+    name: sea-lion-2-1-pvc
+    namespace: sommai
+  hostPath:
+    path: "/mnt/models/llama3-8b-cpt-sea-lionv2.1-instruct"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: scb-typhoon-1-5-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: scb-typhoon-1-5-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+  - ReadWriteOnce
+  claimRef:
+    name: scb-typhoon-1-5-pvc
+    namespace: sommai
+  hostPath:
+    path: "/mnt/models/llama-3-typhoon-v1.5x-70b-instruct-awq"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: meta-llama-3-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: meta-llama-3-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+  - ReadWriteOnce
+  claimRef:
+    name: meta-llama-3-pvc
+    namespace: sommai
+  hostPath:
+    path: "/mnt/models/Meta-Llama-3-70B-Instruct-quantized"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: meta-llama-3-1-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: meta-llama-3-1-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+  - ReadWriteOnce
+  claimRef:
+    name: meta-llama-3-1-pvc
+    namespace: sommai
+  hostPath:
+    path: "/mnt/models/Meta-Llama-3.1-70B-Instruct-AWQ-INT4"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wangchanx-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: wangchanx-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+  - ReadWriteOnce
+  claimRef:
+    name: wangchanx-pvc
+    namespace: sommai
+  hostPath:
+    path: "/mnt/models/LLaMa3.1-8B-Legal-ThaiCCL-Combine"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: embedding-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: embedding-pv
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+  - ReadWriteOnce
+  claimRef:
+    name: embedding-pvc
+    namespace: sommai
+  hostPath:
+    path: "/mnt/models/embedding"
